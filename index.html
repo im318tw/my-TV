@@ -3,307 +3,153 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>台灣/中港澳 雲端電視 (TV版)</title>
+    <title>雲端電視 - GitHub Pages 專用版</title>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
     <style>
         :root {
             --bg-color: #0b0f19; --panel-bg: #1e293b; --text-color: #f8fafc;
-            --focus-color: #fbbf24; --active-color: #ef4444;
+            --focus-color: #fbbf24; --active-color: #ef4444; --success: #10b981;
         }
-        body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; overflow-x: hidden; scroll-behavior: smooth; }
-        .player-container { width: 100%; height: 50vh; background-color: #000; position: relative; box-shadow: 0 4px 20px rgba(0,0,0,0.8); z-index: 10; }
-        video { width: 100%; height: 100%; outline: none; background: #000; }
-        video:focus { box-shadow: inset 0 0 0 5px var(--focus-color); }
-        .playing-info { position: absolute; top: 20px; left: 20px; background: rgba(0, 0, 0, 0.85); padding: 10px 20px; border-radius: 8px; font-size: 1.5rem; font-weight: bold; pointer-events: none; border-left: 5px solid var(--active-color); display: flex; align-items: center; gap: 10px; z-index: 20; text-shadow: 1px 1px 3px #000; }
-        .history-banner { background-color: #334155; color: #fbbf24; padding: 8px 20px; font-size: 1.1rem; font-weight: bold; display: none; text-align: center; border-bottom: 2px solid #fbbf24; }
-        .controls { padding: 15px 20px; background-color: #111827; position: sticky; top: 0; z-index: 100; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        .filter-group { display: flex; gap: 12px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; }
+        body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text-color); font-family: -apple-system, sans-serif; overflow-x: hidden; scroll-behavior: smooth; }
+        .player-container { width: 100%; height: 50vh; background-color: #000; position: sticky; top: 0; z-index: 1000; box-shadow: 0 4px 20px rgba(0,0,0,0.8); }
+        video { width: 100%; height: 100%; background: #000; outline: none; }
+        .playing-info { position: absolute; bottom: 20px; left: 20px; background: rgba(0, 0, 0, 0.7); padding: 8px 15px; border-radius: 5px; font-weight: bold; border-left: 4px solid var(--active-color); z-index: 10; }
+        
+        .controls { padding: 15px; background: #111827; }
+        .filter-group { display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 5px; scrollbar-width: none; }
         .filter-group::-webkit-scrollbar { display: none; }
-        .filter-label { font-size: 1.2rem; font-weight: bold; color: #94a3b8; align-self: center; white-space: nowrap; margin-right: 5px; }
-        button { background-color: var(--panel-bg); color: var(--text-color); border: 4px solid transparent; border-radius: 10px; padding: 10px 20px; font-size: 1.2rem; font-weight: bold; cursor: pointer; transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease; white-space: nowrap; outline: none; }
-        button:focus { border-color: var(--focus-color); background-color: #334155; transform: scale(1.1); box-shadow: 0 0 20px rgba(251, 191, 36, 0.6); z-index: 2; }
-        button.active { background-color: var(--active-color); color: white; border-color: var(--active-color); }
-        button.active:focus { border-color: var(--focus-color); }
-        .channel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; padding: 20px; }
-        .channel-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 90px; font-size: 1.2rem; background: linear-gradient(145deg, #1e293b, #0f172a); box-shadow: 4px 4px 10px rgba(0,0,0,0.4); text-align: center; }
-        .genre-tag { font-size: 0.85rem; color: #cbd5e1; margin-top: 5px; background: rgba(255,255,255,0.15); padding: 3px 8px; border-radius: 4px; }
-        video:-webkit-full-screen { width: 100%; height: 100%; }
+        
+        button { background: var(--panel-bg); color: #fff; border: 2px solid transparent; border-radius: 8px; padding: 8px 16px; cursor: pointer; font-weight: bold; white-space: nowrap; }
+        button:focus, button.active { border-color: var(--focus-color); background: #334155; transform: scale(1.05); outline: none; }
+        button.tool-btn { background: var(--success); }
+
+        .channel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; padding: 15px; }
+        .channel-btn { display: flex; flex-direction: column; height: 70px; justify-content: center; align-items: center; background: linear-gradient(145deg, #1e293b, #0f172a); border-radius: 10px; font-size: 0.95rem; }
+        .tag { font-size: 0.7rem; color: #94a3b8; margin-top: 4px; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 3px; }
+        
+        @media (max-width: 768px) { .player-container { height: 35vh; } .channel-grid { grid-template-columns: repeat(3, 1fr); } }
     </style>
 </head>
 <body>
 
-    <div class="player-container">
-        <video id="tv-video" controls autoplay tabindex="0"></video>
-        <div class="playing-info" id="playing-info">
-            <span id="play-text">▶️ 請選擇下方頻道開始觀看</span>
-        </div>
+<div class="player-container">
+    <video id="tv-video" controls autoplay playsinline></video>
+    <div class="playing-info" id="status-text">📺 請選擇頻道</div>
+</div>
+
+<div class="controls">
+    <div class="filter-group">
+        <button class="tool-btn" onclick="downloadList()">📥 下載 M3U (電腦推薦)</button>
+        <button onclick="alert('提示：\n1. RTMP 協議瀏覽器不支持，請用電腦版觀看。\n2. 若播放失敗請點擊下載 M3U 用 PotPlayer 開啟。')">❓ 播放說明</button>
     </div>
-
-    <div class="history-banner" id="history-banner">
-        🕒 歡迎回來！已恢復上次觀看的頻道：<span id="history-name"></span>
+    <div class="filter-group" id="region-bar">
+        <button class="region-btn active" data-region="all">全部</button>
+        <button class="region-btn" data-region="tw">🇹🇼 台灣/衛視</button>
+        <button class="region-btn" data-region="hkmo">🇭🇰🇲🇴 港澳台</button>
+        <button class="region-btn" data-region="cctv">🇨🇳 央視/4K</button>
     </div>
+</div>
 
-    <div class="controls">
-        <div class="filter-group" id="region-filters">
-            <span class="filter-label">🌍 地區</span>
-            <button class="filter-btn region-btn active" data-region="all" tabindex="0">全部地區</button>
-            <button class="filter-btn region-btn" data-region="tw" tabindex="0">🇹🇼 台灣頻道</button>
-            <button class="filter-btn region-btn" data-region="hkcn" tabindex="0">🇭🇰🇨🇳 港澳大陸</button>
-        </div>
-        <div class="filter-group" id="genre-filters">
-            <span class="filter-label">📺 類型</span>
-            <button class="filter-btn genre-btn active" data-genre="all" tabindex="0">全部</button>
-            <button class="filter-btn genre-btn" data-genre="news" tabindex="0">📰 新聞</button>
-            <button class="filter-btn genre-btn" data-genre="movies" tabindex="0">🎬 影劇</button>
-            <button class="filter-btn genre-btn" data-genre="sports" tabindex="0">🏅 體育</button>
-            <button class="filter-btn genre-btn" data-genre="variety" tabindex="0">🎭 綜合</button>
-            <button class="filter-btn genre-btn" data-genre="discovery" tabindex="0">🌍 探索</button>
-            <button class="filter-btn genre-btn" data-genre="kids" tabindex="0">🧸 兒童</button>
-            <button class="filter-btn genre-btn" data-genre="travel" tabindex="0">✈️ 旅遊</button>
-            <button class="filter-btn genre-btn" data-genre="music" tabindex="0">🎵 音樂</button>
-            <button class="filter-btn genre-btn" data-genre="religion" tabindex="0">🕊️ 宗教與其他</button>
-        </div>
-    </div>
+<div class="channel-grid" id="list-container"></div>
 
-    <div class="channel-grid" id="channel-list"></div>
-
-    <script>
-        // 127台完整資料庫
-        const channels = [
-            // --- 📰 新聞 (21台) ---
-            { name: "TVBS新聞台", url: "http://61.221.215.25:8800/hls/9/index.m3u8", region: "tw", genre: "news" },
-            { name: "tvbs新聞(線路2)", url: "http://aktv.top/AKTV/live/aktv/tvbs-1/AKTV.m3u8", region: "tw", genre: "news" },
-            { name: "TVBS亚洲", url: "http://38.64.72.148/hls/modn/list/4005/chunklist1.m3u8", region: "tw", genre: "news" },
-            { name: "東森新聞", url: "https://epg.pw/stream/d91376ed07fba14fec3772dd7bfcc266f213294ded9193f751afb3e7ca95f573.m3u8", region: "tw", genre: "news" },
-            { name: "東森財經", url: "https://epg.pw/stream/c4452be892906f85b59ac80ba36d1924380e404a65012937dc589180fd84ebe2.m3u8", region: "tw", genre: "news" },
-            { name: "三立新聞", url: "http://aktv.top/AKTV/live/aktv/null-14/AKTV.m3u8", region: "tw", genre: "news" },
-            { name: "民视新闻台", url: "http://38.64.72.148/hls/modn/list/4012/chunklist1.m3u8", region: "tw", genre: "news" },
-            { name: "台视新闻 HD", url: "http://38.64.72.148/hls/modn/list/4013/chunklist0.m3u8", region: "tw", genre: "news" },
-            { name: "台視財經", url: "http://litv.zapi.us.kg/?id=4gtv-4gtv056", region: "tw", genre: "news" },
-            { name: "中天新聞", url: "http://aktv.top/AKTV/live/aktv/null-8/AKTV.m3u8", region: "tw", genre: "news" },
-            { name: "寰宇新闻", url: "https://epg.pw/stream/eed37c9d7d82dc884bdfa04703da80f8bdb4e9910fbd2b396c8f72fb66093c75.m3u8", region: "tw", genre: "news" },
-            { name: "香港有线新闻", url: "https://epg.pw/stream/4c65fc12a950810e9f068c55b2abf43cf7937762e9c5d4d44381205743c731bf.ctv", region: "hkcn", genre: "news" },
-            { name: "有线新闻", url: "http://61.10.2.141/live_freedirect/freehd209_h.live/playlist.m3u", region: "hkcn", genre: "news" },
-            { name: "有线新闻台", url: "http://cm61-10-2-143.hkcable.com.hk/live_freedirect/freehd209_h.live/playlist.m3u8", region: "hkcn", genre: "news" },
-            { name: "香港国际财经台", url: "https://epg.pw/stream/d7d42738d28d82242956de378400f29c137bb4844173f1517b19bad0dd5c95d5.m3u8", region: "hkcn", genre: "news" },
-            { name: "凤凰资讯", url: "https://cdn3.163189.xyz/live/fhzx/stream.m3u8", region: "hkcn", genre: "news" },
-            { name: "澳门有线互动新闻", url: "http://202.175.127.77/live/show/ch2/index.m3u8", region: "hkcn", genre: "news" },
-            { name: "耀才财经", url: "https://v3.mediacast.hk/webcast/bshdlive-pc/playlist.m3u8", region: "hkcn", genre: "news" },
-            { name: "耀才财经(Mobile)", url: "http://202.69.67.66:443/webcast/bshdlive-mobile/playlist.m3u8", region: "hkcn", genre: "news" },
-            { name: "有线财经信息台", url: "https://epg.pw/stream/0fddc0600d3868b05ad741d46294410aebca0fdc4fada5028dc54e624b7b17ca.m3u8", region: "hkcn", genre: "news" },
-            { name: "点掌财经", url: "https://epg.pw/stream/96bec7b1f9d22ac90697af55775bf2328443600cdc5ac81952ca681c136f86f7.m3u8", region: "hkcn", genre: "news" },
-            // --- 🎬 影劇 (25台) ---
-            { name: "AMC電影台", url: "http://61.221.215.25:8800/hls/43/index.m3u8", region: "tw", genre: "movies" },
-            { name: "CINEMA-頻道", url: "http://37.27.111.214:8080/live/30/hls.m3u8", region: "tw", genre: "movies" },
-            { name: "HITs電影頻道", url: "http://37.27.111.214:8080/live/28/hls.m3u8", region: "tw", genre: "movies" },
-            { name: "GTV八大戲劇HD", url: "http://61.221.215.25:8800/hls/39/index.m3u8", region: "tw", genre: "movies" },
-            { name: "八大戲劇(線路2)", url: "http://www.zzrs888.top/tw5.php?id=八大戲劇HD", region: "tw", genre: "movies" },
-            { name: "东森戏剧", url: "https://epg.pw/stream/5dc124caeeb73ea07e5542cca877600b90f87a42e72b579e267528c3411b073f.m3u8", region: "tw", genre: "movies" },
-            { name: "SET三立戲劇", url: "http://61.221.215.25:8800/hls/41/index.m3u8", region: "tw", genre: "movies" },
-            { name: "公視戲劇", url: "http://litv.zapi.us.kg/?id=4gtv-4gtv042", region: "tw", genre: "movies" },
-            { name: "靖天電影", url: "http://aktv.top/AKTV/live/aktv/null-6/AKTV.m3u8", region: "tw", genre: "movies" },
-            { name: "龍華電影", url: "http://aktv.top/AKTV/live/aktv/null-23/AKTV.m3u8", region: "tw", genre: "movies" },
-            { name: "龍華電影頻道", url: "http://37.27.111.214:8080/live/19/hls.m3u8", region: "tw", genre: "movies" },
-            { name: "龙华戏剧", url: "https://epg.pw/stream/cf908cfdb24cc4a8297f6f7fd955ca7ef3579e892600280fde9cdcfcffb4e481.m3u8", region: "tw", genre: "movies" },
-            { name: "龙华偶像", url: "https://cdn8.163189.xyz/live/lhox/stream.m3u8", region: "tw", genre: "movies" },
-            { name: "中視經典", url: "http://litv.zapi.us.kg/?id=4gtv-4gtv080", region: "tw", genre: "movies" },
-            { name: "千禧經典台", url: "http://aktv.top/AKTV/live/aktv/null-21/AKTV.m3u8", region: "tw", genre: "movies" },
-            { name: "天映经典", url: "https://epg.pw/stream/257310e766410da552d36d6edd54d575489b6f2f6fc282f89d697d68b46b47fc.ctv", region: "hkcn", genre: "movies" },
-            { name: "天映经典(線路2)", url: "http://210.210.155.37/qwr9ew/s/s31/index2.m3u8", region: "hkcn", genre: "movies" },
-            { name: "天映频道(MAS)", url: "https://epg.pw/stream/be57bcf7129184f546bebfec81d980207851b2d523b83ff64deddda8d6e5e5e6.ctv", region: "hkcn", genre: "movies" },
-            { name: "凤凰电影", url: "https://epg.pw/stream/9ed301e39bb8ca159e243f22b480bf96dd911e48e89709a29959a5aab65608cf.ctv", region: "hkcn", genre: "movies" },
-            { name: "凤凰电影(線路2)", url: "http://218.202.220.2:5000/nn_live.ts?id=NEWSASIA", region: "hkcn", genre: "movies" },
-            { name: "美亚电影", url: "https://epg.pw/stream/36b38b4c010474566de14e477a1113b335f32a4e5811548b7119b289ab05f5dd.m3u8", region: "hkcn", genre: "movies" },
-            { name: "美亚C+", url: "http://ottproxy2.ist.ooo/livehls/MOB-U1-NO/03.m3u8", region: "hkcn", genre: "movies" },
-            { name: "Now星影台", url: "http://aktv.top/AKTV/live/aktv/now/AKTV.m3u8", region: "hkcn", genre: "movies" },
-            { name: "重温经典", url: "https://cdn3.163189.xyz/live/cwjd/stream.m3u8", region: "hkcn", genre: "movies" },
-            { name: "重温经典(線路2)", url: "http://ali.hlspull.yximgs.com/live/awei_cwjd.flv", region: "hkcn", genre: "movies" },
-            // --- 🏅 體育 (7台) ---
-            { name: "緯來體育", url: "https://epg.pw/stream/65161be2ecd7c7b2e054dbac30922b2673b4eff6497b77c71bb81215aa826cc4.m3u8", region: "tw", genre: "sports" },
-            { name: "博斯運動頻壹", url: "http://37.27.111.214:8080/live/14/hls.m3u8", region: "tw", genre: "sports" },
-            { name: "博斯运动2", url: "https://epg.pw/stream/f8e9fc9a8c76935a58f6c9295462febadcc2e06471bc7634a6cd4d7fe5a12b14.m3u8", region: "tw", genre: "sports" },
-            { name: "博斯高球頻壹", url: "http://37.27.111.214:8080/live/13/hls.m3u8", region: "tw", genre: "sports" },
-            { name: "博斯無限頻道", url: "http://37.27.111.214:8080/live/15/hls.m3u8", region: "tw", genre: "sports" },
-            { name: "博斯魅力", url: "https://epg.pw/stream/440e2c0585ce62fd999454df8770aef94a3631ed4dbb1036be6a191ce879d581.m3u8", region: "tw", genre: "sports" },
-            { name: "SUPER 18台", url: "http://aktv.top/AKTV/live/aktv/mytvsuper18/AKTV.m3u8", region: "hkcn", genre: "sports" },
-            // --- 🎭 綜藝綜合 (41台) ---
-            { name: "中视", url: "http://37.27.111.214:8080/live/7/hls.m3u8", region: "tw", genre: "variety" },
-            { name: "中視(線路2)", url: "https://epg.pw/stream/850967cb490cf3c98e20a19b56de0e5a029710949cff71a4132bf059dcf656bc.m3u8", region: "tw", genre: "variety" },
-            { name: "中視菁采", url: "http://litv.zapi.us.kg/?id=4gtv-4gtv064", region: "tw", genre: "variety" },
-            { name: "中視閩南", url: "http://aktv.top/AKTV/live/aktv/null-10/AKTV.m3u8", region: "tw", genre: "variety" },
-            { name: "中天娱乐", url: "http://61.221.215.25:8800/hls/47/index.m3u8", region: "tw", genre: "variety" },
-            { name: "中天亞洲", url: "http://aktv.top/AKTV/live/aktv/null-12/AKTV.m3u8", region: "tw", genre: "variety" },
-            { name: "民视", url: "https://epg.pw/stream/446ff2630964ca5ddcb9f9cb6d4e1a5f2ca1dca875b2a4e1c462b9e5cf83b77d.m3u8", region: "tw", genre: "variety" },
-            { name: "民視閩南頻道", url: "http://37.27.111.214:8080/live/6/hls.m3u8", region: "tw", genre: "variety" },
-            { name: "公视", url: "https://epg.pw/stream/5c0663273403c40461cd1ae04cc5cfa4bb9d5d626270d5ec1754aeb554c3020b.m3u8", region: "tw", genre: "variety" },
-            { name: "华视", url: "https://epg.pw/stream/2ef08642072574008f65939021951a59fe9fc71369c751393f40a1b2234e18c9.m3u8", region: "tw", genre: "variety" },
-            { name: "華視閩南頻道", url: "http://37.27.111.214:8080/live/8/hls.m3u8", region: "tw", genre: "variety" },
-            { name: "GTV八大綜合台", url: "http://61.221.215.25:8800/hls/56/index.m3u8", region: "tw", genre: "variety" },
-            { name: "八大综合(線路2)", url: "https://epg.pw/stream/adb797f4658363759c5a408dfec1e091e7cfe712fe04afaa3b8d7670efef57e1.m3u8", region: "tw", genre: "variety" },
-            { name: "GTV八大第1台HD", url: "http://61.221.215.25:8800/hls/55/index.m3u8", region: "tw", genre: "variety" },
-            { name: "八大第一", url: "http://www.zzrs888.top/tw5.php?id=八大第一HD", region: "tw", genre: "variety" },
-            { name: "三立台湾台", url: "https://epg.pw/stream/79a263b6160e568f6d3cd91417334e5b08f1638bf5990da99c65d94589d35fb7.m3u8", region: "tw", genre: "variety" },
-            { name: "三立都會", url: "http://www.zzrs888.top/tw5.php?id=三立都會HD", region: "tw", genre: "variety" },
-            { name: "三立綜合", url: "http://aktv.top/AKTV/live/aktv/null-13/AKTV.m3u8", region: "tw", genre: "variety" },
-            { name: "东森综合", url: "https://epg.pw/stream/d8efe6bedc4a8852aafaf7f5e2c0f72096e12f314da5ce617922dd6802352486.m3u8", region: "tw", genre: "variety" },
-            { name: "东森超视", url: "https://epg.pw/stream/399d56f2f9e2d86aca7f158f518a9cdbe9b672cf3ad82813361922e06eaf4abe.m3u8", region: "tw", genre: "variety" },
-            { name: "年代much", url: "https://epg.pw/stream/811e09d2c2770631c5621144d8e610cfa14a4b55154ca84556b5dab9b5c49317.m3u8", region: "tw", genre: "variety" },
-            { name: "纬来综合", url: "https://epg.pw/stream/03ebc1a8a33908af343e09da79d9d8d08246222c793931c98184be5818a788a1.m3u8", region: "tw", genre: "variety" },
-            { name: "緯來精采HD", url: "http://61.221.215.25:8800/hls/48/index.m3u8", region: "tw", genre: "variety" },
-            { name: "世新綜合", url: "http://61.58.60.230:9319/live/49.m3u8", region: "tw", genre: "variety" },
-            { name: "大立電視", url: "http://www.dalitv.com.tw:4568/live/dali/index.m3u8", region: "tw", genre: "variety" },
-            { name: "番薯台", url: "http://61.216.67.119:1935/TWHG/E1/chunklist_w705811302.m3u8", region: "tw", genre: "variety" },
-            { name: "中华小当家", url: "http://61.221.215.25:8800/hls/40/index.m3u8", region: "tw", genre: "variety" },
-            { name: "channel5", url: "http://aktv.top/AKTV/live/aktv/channel5hd/AKTV.m3u8", region: "hkcn", genre: "variety" },
-            { name: "channel8", url: "http://aktv.top/AKTV/live/aktv/channel8hd/AKTV.m3u8", region: "hkcn", genre: "variety" },
-            { name: "channelu", url: "http://aktv.top/AKTV/live/aktv/channeluhd/AKTV.m3u8", region: "hkcn", genre: "variety" },
-            { name: "翡翠", url: "https://cdn3.163189.xyz/live/fct/stream.m3u8", region: "hkcn", genre: "variety" },
-            { name: "TVBJ1", url: "https://cdn3.163189.xyz/live/j1/stream.m3u8", region: "hkcn", genre: "variety" },
-            { name: "TVB无线星河", url: "http://v2h.jdshipin.com/xinghe/xinghe.stream/chunklist.m3u8", region: "hkcn", genre: "variety" },
-            { name: "香港卫视", url: "https://epg.pw/stream/ad0b854c8dbe94e0e45c618aa5a6da822e8437f77ae84fdf6718423015495aaa.m3u8", region: "hkcn", genre: "variety" },
-            { name: "香港卫视(線路2)", url: "http://anren.live/HK/BSJDUFpB.m3u8", region: "hkcn", genre: "variety" },
-            { name: "凤凰香港台", url: "https://epg.pw/stream/27b49ba568efc8dcc9af6a79ec06ffd4a2e354e3e2060143be83fca695edf46e.m3u8", region: "hkcn", genre: "variety" },
-            { name: "凤凰香港", url: "https://cdn6.163189.xyz/live/fhhk/stream.m3u8", region: "hkcn", genre: "variety" },
-            { name: "澳门有线 CH1", url: "http://202.175.127.77/live/show/ch1/index.m3u8", region: "hkcn", genre: "variety" },
-            { name: "澳视澳门", url: "http://183.237.246.14:9931/tsfile/live/1039_1.m3u8", region: "hkcn", genre: "variety" },
-            { name: "香港電台普通話", url: "https://rthkaudio6-lh.akamaihd.net/i/radiopth_1@355869/index_56_a-p.m3u8", region: "hkcn", genre: "variety" },
-            { name: "面包台", url: "https://video.bread-tv.com:8091/hls-live24/online/index.m3u8", region: "hkcn", genre: "variety" },
-            // --- 🌍 探索益智 (7台) ---
-            { name: "Discovery探索頻道", url: "http://61.221.215.25:8800/hls/1/index.m3u8", region: "tw", genre: "discovery" },
-            { name: "Discovery探索亞洲", url: "http://61.221.215.25:8800/hls/50/index.m3u8", region: "tw", genre: "discovery" },
-            { name: "國家地理", url: "http://aktv.top/AKTV/live/aktv3/lovenaturehd/AKTV.m3u8", region: "tw", genre: "discovery" },
-            { name: "国家地理野生", url: "https://epg.pw/stream/936ec911ca3a23631c8e822081ca3fe8f0e1a93bac068f4db5eaa005b2fccba7.m3u8", region: "tw", genre: "discovery" },
-            { name: "動物星球", url: "http://61.221.215.25:8800/hls/57/index.m3u8", region: "tw", genre: "discovery" },
-            { name: "动物星球(線路2)", url: "https://epg.pw/stream/0e38a2ff528e933b9a9dc37acf08f88b9ac4c118cdbba4adac0517303612645e.m3u8", region: "tw", genre: "discovery" },
-            { name: "HISTORY頻道", url: "http://37.27.111.214:8080/live/27/hls.m3u8", region: "tw", genre: "discovery" },
-            // --- 🧸 動漫兒童 (9台) ---
-            { name: "AniMAX", url: "http://aktv.top/AKTV/live/aktv3/animaxhk/AKTV.m3u8", region: "tw", genre: "kids" },
-            { name: "Nick卡通", url: "http://aktv.top/AKTV/live/aktv3/nickjr/AKTV.m3u8", region: "tw", genre: "kids" },
-            { name: "Nick綜合", url: "http://aktv.top/AKTV/live/aktv3/nickelodeon/AKTV.m3u8", region: "tw", genre: "kids" },
-            { name: "尼克儿童频道", url: "https://epg.pw/stream/3f9e0cbf40dd4828d593f974c80730357e4fdc12f11b239ef6f6542e21e781a4.m3u8", region: "tw", genre: "kids" },
-            { name: "东森幼幼台", url: "https://epg.pw/stream/de717f629316508933939cc9d90e62b3a86d6377aff1ca390e1717e68c960eb4.m3u8", region: "tw", genre: "kids" },
-            { name: "龙华卡通", url: "https://cdn8.163189.xyz/live/lhkt/stream.m3u8", region: "tw", genre: "kids" },
-            { name: "ZooMoo", url: "http://aktv.top/AKTV/live/aktv3/zoomoo/AKTV.m3u8", region: "tw", genre: "kids" },
-            { name: "PopC", url: "http://aktv.top/AKTV/live/aktv/popc/AKTV.m3u8", region: "tw", genre: "kids" },
-            { name: "靖天卡通", url: "https://epg.pw/stream/d3d02fa9532f7534b585d54c1d5c9d2efd49a5e08858e1f16750eec4448f083a.m3u8", region: "tw", genre: "kids" },
-            // --- ✈️ 旅遊 (7台) ---
-            { name: "亞洲旅遊頻道", url: "http://37.27.111.214:8080/live/10/hls.m3u8", region: "tw", genre: "travel" },
-            { name: "香港卫视文旅", url: "https://epg.pw/stream/092a08c73e2f252b5b864bbf21fc7753e7c59c706165977ab071e8b2216da0cb.m3u8", region: "hkcn", genre: "travel" },
-            { name: "澳门有线 CH3", url: "http://202.175.127.77/live/show/ch3/index.m3u8", region: "hkcn", genre: "travel" },
-            { name: "美食星球", url: "https://epg.pw/stream/1df3601f344fa4b1c79295aefec312f528d418c2ed0b391b3fe630ed1ddf70fc.m3u8", region: "tw", genre: "travel" },
-            { name: "時尚台FTV", url: "http://80.94.54.42/fashiontv/stream/playlist.m3u8", region: "hkcn", genre: "travel" },
-            { name: "時尚台FTV(線路2)", url: "http://lb.streaming.sk/fashiontv/stream/chunklist.m3u8", region: "hkcn", genre: "travel" },
-            { name: "環球電視", url: "http://zb.xzxwhcb.com:9999/hls/world.m3u8", region: "tw", genre: "travel" },
-            // --- 🎵 音樂 (3台) ---
-            { name: "音樂欣賞1", url: "http://61.221.215.25:8800/hls/49/index.m3u8", region: "tw", genre: "music" },
-            { name: "音樂欣賞2", url: "http://61.221.215.25:8800/hls/58/index.m3u8", region: "tw", genre: "music" },
-            { name: "豬哥亮歌廳國", url: "http://37.27.111.214:8080/live/35/hls.m3u8", region: "tw", genre: "music" },
-            // --- 🕊️ 宗教與其他 (12台) ---
-            { name: "大爱1台", url: "https://pulltv1.wanfudaluye.com/live/tv1.m3u8", region: "tw", genre: "religion" },
-            { name: "大爱2台", url: "https://pulltv1.wanfudaluye.com/live/tv2.m3u8", region: "tw", genre: "religion" },
-            { name: "人间卫视", url: "https://5ddce30eb4b55.streamlock.net/bltvhd/bltv1/chunklist_w511254805.m3u8", region: "tw", genre: "religion" },
-            { name: "唯心电视", url: "https://epg.pw/stream/7d651c567d48727fc8f95cef7d2b349246baef656e557211c784bc62024b10d0.m3u8", region: "tw", genre: "religion" },
-            { name: "唯心电视台", url: "http://mobile.ccdntech.com/transcoder/_definst_/vod164_Live/live/playlist.m3u8", region: "tw", genre: "religion" },
-            { name: "好消息", url: "http://live-350k.streamingfast.net/hls-live/goodtv/_definst_/liveevent/live-ch1-1.m3u8", region: "tw", genre: "religion" },
-            { name: "好消息综合台", url: "https://dqhxk7sbp7xog.cloudfront.net/hls-live/goodtv/_definst_/liveevent/live-ch1-2.m3u8", region: "tw", genre: "religion" },
-            { name: "生命電視", url: "http://61.216.67.119:1935/lifetv/lifetv.stream/manifest.m3u8", region: "tw", genre: "religion" },
-            { name: "香港佛陀", url: "http://js1.amtb.cn/liveedge/_definst_/livetv/chunklist.m3u8", region: "hkcn", genre: "religion" },
-            { name: "创世电视", url: "https://cdn.deepcore.online/hlsme/ctv_hk_1080.m3u8", region: "hkcn", genre: "religion" },
-            { name: "國會頻道1", url: "http://61.58.60.230:9319/live/123.m3u8", region: "tw", genre: "religion" },
-            { name: "莲花卫视", url: "http://php.jdshipin.com:8880/amlh.php", region: "hkcn", genre: "religion" }
-        ];
-
-        let currentRegion = 'all', currentGenre = 'all', hls = null;
-        const video = document.getElementById('tv-video'), infoText = document.getElementById('play-text'), historyBanner = document.getElementById('history-banner');
+<script>
+    const channels = [
+        // --- 央視 & 4K ---
+        { name: "CCTV-1 綜合", url: "http://124.90.44.40:6060/010/2/00000001000000060000000000000469?virtualDomain=010.live_hls.zte.com", region: "cctv" },
+        { name: "CCTV-3 綜藝", url: "http://124.90.44.40:6060/010/2/00000001000000060000000000000642?virtualDomain=010.live_hls.zte.com", region: "cctv" },
+        { name: "CCTV-4 中文", url: "http://124.90.44.40:6060/010/2/00000009000000060000000000002077?virtualDomain=010.live_hls.zte.com", region: "cctv" },
+        { name: "CCTV-5+ 體育", url: "http://124.90.44.40:6060/010/2/00000001000000060000000000000788?virtualDomain=010.live_hls.zte.com", region: "cctv" },
+        { name: "CCTV-4K 超清", url: "http://www.520345.xyz:8188/rtp/239.69.1.111:10304?", region: "cctv" },
         
-        function renderChannels() {
-            const list = document.getElementById('channel-list');
-            list.innerHTML = ''; 
-            const filtered = channels.filter(ch => (currentRegion === 'all' || ch.region === currentRegion) && (currentGenre === 'all' || ch.genre === currentGenre));
+        // --- 港澳台系列 (測速可用) ---
+        { name: "翡翠台 (4K)", url: "https://o11.163189.xyz/stream/tvb/fct4k/", region: "hkmo" },
+        { name: "翡翠台 (備用)", url: "https://mytv.cdn.loc.cc/o12.php?id=fct", region: "hkmo" },
+        { name: "TVB Plus", url: "https://o11.163189.xyz/stream/tvb/tvbp/", region: "hkmo" },
+        { name: "無線新聞 (iNews)", url: "http://74.91.26.218:82/live/inews.m3u8", region: "hkmo" },
+        { name: "鳳凰中文 (高清)", url: "http://61.184.46.85:85/tsfile/live/1029_1.m3u8?key=txiptv&playlive=1&authid=0", region: "hkmo" },
+        { name: "鳳凰中文 (備用)", url: "http://r.jdshipin.com/cCCzW", region: "hkmo" },
+        { name: "鳳凰資訊", url: "https://cdn9.163189.xyz/smt3.1.1.php?id=phoenixinfo_hd", region: "hkmo" },
+        { name: "NOW新聞台", url: "http://cdn.163189.xyz/163189/now", region: "hkmo" },
+        { name: "NOW體育台", url: "http://rihou.cc:555/tv/[Mt]Now体育", region: "hkmo" },
+        { name: "ViuTV", url: "https://cdn.163189.xyz/163189/viu", region: "hkmo" },
+        
+        // --- 台灣與衛視 ---
+        { name: "TVBS", url: "http://38.64.72.148:80/hls/modn/list/4005/chunklist1.m3u8", region: "tw" },
+        { name: "TVBS新聞台", url: "http://rihou.cc:555/tv/[FY]tvbS新聞", region: "tw" },
+        { name: "台視新聞", url: "http://38.64.72.148:80/hls/modn/list/4013/chunklist1.m3u8", region: "tw" },
+        { name: "民視新聞", url: "http://38.64.72.148:80/hls/modn/list/4012/chunklist1.m3u8", region: "tw" },
+        { name: "中視", url: "rtmp://f13h.mine.nu/sat/tv091", region: "tw" },
+        { name: "華視", url: "rtmp://f13h.mine.nu/sat/tv111", region: "tw" },
+        { name: "浙江衛視 (4K)", url: "http://124.90.44.40:6060/010/2/00000009000000060000000000002065?virtualDomain=010.live_hls.zte.com", region: "tw" },
+        { name: "湖南衛視 (4K)", url: "http://124.90.44.40:6060/010/2/00000009000000060000000000002069?virtualDomain=010.live_hls.zte.com", region: "tw" }
+    ];
 
-            filtered.forEach(ch => {
-                const btn = document.createElement('button');
-                btn.className = 'channel-btn'; btn.tabIndex = 0;
-                const genreMap = { 'news': '新聞', 'movies': '影劇', 'sports': '體育', 'variety': '綜合', 'discovery': '探索', 'kids': '兒童', 'travel': '旅遊', 'music': '音樂', 'religion': '宗教' };
-                btn.innerHTML = `<span>${ch.name}</span><span class="genre-tag">${genreMap[ch.genre] || ''}</span>`;
-                btn.onclick = () => playStream(ch);
-                list.appendChild(btn);
-            });
-            if(filtered.length === 0) list.innerHTML = '<div style="font-size: 1.5rem; text-align:center; grid-column: 1/-1; padding: 40px;">此分類無頻道</div>';
-        }
+    let currentRegion = 'all';
+    const video = document.getElementById('tv-video');
+    const statusText = document.getElementById('status-text');
+    let hls = null;
 
-        function playStream(channelObj, autoScroll = true) {
-            infoText.innerText = "⏳ 載入中: " + channelObj.name + "...";
-            localStorage.setItem('tv_last_watched', JSON.stringify(channelObj));
-            if (autoScroll) { window.scrollTo({ top: 0, behavior: 'smooth' }); video.focus(); }
-
-            if (Hls.isSupported()) {
-                if (hls) hls.destroy(); 
-                hls = new Hls({ maxBufferLength: 30, maxMaxBufferLength: 600 });
-                hls.loadSource(channelObj.url); hls.attachMedia(video);
-                hls.on(Hls.Events.MANIFEST_PARSED, () => { infoText.innerText = "▶️ 正在播放: " + channelObj.name; video.play().catch(e => console.log("等待點擊")); });
-                hls.on(Hls.Events.ERROR, function (event, data) {
-                    if (data.fatal) {
-                        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) { infoText.innerText = "❌ 網路限制(CORS)或失效: " + channelObj.name; hls.destroy(); }
-                        else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) { infoText.innerText = "⚠️ 嘗試修復畫片..."; hls.recoverMediaError(); }
-                        else { infoText.innerText = "❌ 無法播放: " + channelObj.name; hls.destroy(); }
-                    }
-                });
-            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                video.src = channelObj.url;
-                video.addEventListener('loadedmetadata', () => { infoText.innerText = "▶️ 正在播放: " + channelObj.name; video.play(); });
-                video.addEventListener('error', () => { infoText.innerText = "❌ 影片載入失敗: " + channelObj.name; });
-            }
-        }
-
-        function loadHistory() {
-            const saved = localStorage.getItem('tv_last_watched');
-            if (saved) {
-                try {
-                    const ch = JSON.parse(saved); document.getElementById('history-name').innerText = ch.name; historyBanner.style.display = 'block';
-                    playStream(ch, false); setTimeout(() => { historyBanner.style.display = 'none'; }, 4000);
-                } catch(e) {}
-            }
-        }
-
-        // 遙控器與過濾邏輯
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const isRegion = e.target.classList.contains('region-btn');
-                document.querySelectorAll(isRegion ? '.region-btn' : '.genre-btn').forEach(b => b.classList.remove('active'));
-                e.target.classList.add('active');
-                if (isRegion) currentRegion = e.target.getAttribute('data-region');
-                else currentGenre = e.target.getAttribute('data-genre');
-                renderChannels();
-            });
+    function render() {
+        const container = document.getElementById('list-container');
+        container.innerHTML = '';
+        const filtered = channels.filter(c => currentRegion === 'all' || c.region === currentRegion);
+        
+        filtered.forEach(ch => {
+            const btn = document.createElement('button');
+            btn.className = 'channel-btn';
+            const isRTMP = ch.url.startsWith('rtmp');
+            btn.innerHTML = `<span>${ch.name}</span><span class="tag">${isRTMP ? 'RTMP(限電腦)' : 'HLS'}</span>`;
+            btn.onclick = () => play(ch);
+            container.appendChild(btn);
         });
+    }
 
-        document.addEventListener('keydown', (e) => {
-            const focusable = Array.from(document.querySelectorAll('button, video'));
-            const currentIndex = focusable.indexOf(document.activeElement);
-            const scrollToFocus = (element) => { element.focus(); element.scrollIntoView({ behavior: 'smooth', block: 'center' }); };
+    function play(ch) {
+        if (ch.url.startsWith('rtmp')) {
+            statusText.innerText = "❌ 瀏覽器不支持 RTMP，請下載 M3U 用 PotPlayer 觀看";
+            return;
+        }
 
-            switch(e.key) {
-                case 'ArrowRight': e.preventDefault(); if (currentIndex >= 0 && currentIndex < focusable.length - 1) scrollToFocus(focusable[currentIndex + 1]); break;
-                case 'ArrowLeft': e.preventDefault(); if (currentIndex > 0) scrollToFocus(focusable[currentIndex - 1]); break;
-                case 'ArrowDown':
-                    e.preventDefault();
-                    if (document.activeElement.classList.contains('filter-btn')) { const firstChannel = document.querySelector('.channel-btn'); if (firstChannel) scrollToFocus(firstChannel); } 
-                    else if (currentIndex >= 0) scrollToFocus(focusable[Math.min(currentIndex + 4, focusable.length - 1)]);
-                    break;
-                case 'ArrowUp':
-                    e.preventDefault();
-                    if (currentIndex > 0) {
-                        if (document.activeElement.classList.contains('channel-btn') && currentIndex <= 16) scrollToFocus(document.querySelector('.genre-btn.active'));
-                        else scrollToFocus(focusable[Math.max(currentIndex - 4, 0)]);
-                    }
-                    break;
-                case 'Enter': if (document.activeElement === video) { if (video.paused) video.play(); else video.pause(); } break;
-                case 'Escape': case 'Backspace': if (document.fullscreenElement) document.exitFullscreen(); break;
-            }
-        });
+        statusText.innerText = "⏳ 正在加載: " + ch.name;
+        if (Hls.isSupported()) {
+            if (hls) hls.destroy();
+            hls = new Hls();
+            hls.loadSource(ch.url);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                video.play();
+                statusText.innerText = "▶️ 正在播放: " + ch.name;
+            });
+            hls.on(Hls.Events.ERROR, (e, data) => {
+                if (data.fatal) statusText.innerText = "⚠️ 播放失敗，請檢查線路或使用電腦版";
+            });
+        } else {
+            video.src = ch.url;
+            statusText.innerText = "▶️ 正在播放: " + ch.name;
+        }
+    }
 
-        window.onload = () => { renderChannels(); loadHistory(); document.querySelector('.region-btn.active').focus(); };
-    </script>
+    function downloadList() {
+        let m3u = "#EXTM3U\n";
+        channels.forEach(ch => m3u += `#EXTINF:-1,${ch.name}\n${ch.url}\n`);
+        const blob = new Blob([m3u], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'TV_Collection.m3u';
+        a.click();
+    }
+
+    document.querySelectorAll('.region-btn').forEach(btn => {
+        btn.onclick = (e) => {
+            document.querySelectorAll('.region-btn').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            currentRegion = e.target.dataset.region;
+            render();
+        };
+    });
+
+    window.onload = render;
+</script>
+
 </body>
 </html>
